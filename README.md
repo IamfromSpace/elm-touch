@@ -1,6 +1,6 @@
 # Global Touch Events
 
-This library is useful for trickier mouse interactions. Things like:
+This library is useful for trickier touch interactions. Things like:
 
   - Close a dialog when the user taps outside of it.
   - Implement drag-and-drop for something.
