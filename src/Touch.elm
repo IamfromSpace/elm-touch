@@ -44,18 +44,46 @@ type alias Touch =
     }
 
 
+changedTouchesKey : String
+changedTouchesKey =
+    "changedTouches"
+
+
 {-| The decoder used to extract a list of `Touch`s from a JavaScript touch event.
 -}
 touches : Json.Decoder (List Touch)
 touches =
-    -- TODO: This only gets the first touch (which is guaranteed to exist).
+    -- TODO: This is pretty silly, and only works with 5 or less touches.
     -- `Json.list` fails to decode the array of touches, because it is not
     -- an `instanceof Array`, it is a `TouchList`.
-    Json.map (\x -> [ x ]) <|
-        Json.map3 Touch
-            (Json.at [ "changedTouches", "0", "pageX" ] Json.float)
-            (Json.at [ "changedTouches", "0", "pageY" ] Json.float)
-            (Json.at [ "changedTouches", "0", "identifier" ] Json.int)
+    -- note that Array.isArray(touchList) also returns false.
+    Json.at [ changedTouchesKey, "length" ] Json.int
+        |> Json.andThen
+            (\length ->
+                case length of
+                    1 ->
+                        Json.map (\x -> [ x ]) (touch 0)
+
+                    2 ->
+                        Json.map2 (\a b -> [ a, b ]) (touch 0) (touch 1)
+
+                    3 ->
+                        Json.map3 (\a b c -> [ a, b, c ]) (touch 0) (touch 1) (touch 2)
+
+                    4 ->
+                        Json.map4 (\a b c d -> [ a, b, c, d ]) (touch 0) (touch 1) (touch 2) (touch 3)
+
+                    _ ->
+                        Json.map5 (\a b c d e -> [ a, b, c, d, e ]) (touch 0) (touch 1) (touch 2) (touch 3) (touch 4)
+            )
+
+
+touch : Int -> Json.Decoder Touch
+touch i =
+    Json.map3 Touch
+        (Json.at [ changedTouchesKey, toString i, "pageX" ] Json.float)
+        (Json.at [ changedTouchesKey, toString i, "pageY" ] Json.float)
+        (Json.at [ changedTouchesKey, toString i, "identifier" ] Json.int)
 
 
 {-| Subscribe to touch moves anywhere on screen. It is best to unsubscribe if
